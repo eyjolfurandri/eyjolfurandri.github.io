@@ -1,11 +1,1528 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>My Data Viz Site</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Green Ledger</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --forest: #1a3a2a;
+    --moss: #2d6a4f;
+    --leaf: #52b788;
+    --mint: #95d5b2;
+    --cream: #f8f4ec;
+    --sand: #e9e0ce;
+    --amber: #e4a020;
+    --rust: #c44b2b;
+    --charcoal: #1c1c1e;
+    --fog: #8a9e93;
+    --white: #ffffff;
+    --profit-color: #52b788;
+    --carbon-color: #c44b2b;
+    --trust-color: #e4a020;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--cream);
+    color: var(--charcoal);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ── INTRO ── */
+  #intro {
+    background: var(--forest);
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  #intro::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(82,183,136,0.18) 0%, transparent 70%);
+    top: -150px; right: -150px;
+    animation: pulse 6s ease-in-out infinite;
+  }
+  #intro::after {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(228,160,32,0.1) 0%, transparent 70%);
+    bottom: -100px; left: -100px;
+    animation: pulse 8s ease-in-out infinite reverse;
+  }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:1;} 50%{transform:scale(1.1);opacity:0.7;} }
+
+  .intro-inner {
+    text-align: center;
+    z-index: 1;
+    padding: 2rem;
+    max-width: 620px;
+  }
+  .intro-badge {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--leaf);
+    border: 1px solid rgba(82,183,136,0.4);
+    padding: 0.4em 1em;
+    border-radius: 2px;
+    margin-bottom: 2rem;
+  }
+  .intro-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(3.5rem, 10vw, 5.5rem);
+    color: var(--white);
+    line-height: 0.95;
+    margin-bottom: 0.3rem;
+    letter-spacing: -0.02em;
+  }
+  .intro-title em {
+    font-style: italic;
+    color: var(--leaf);
+  }
+  .intro-subtitle {
+    font-size: 0.9rem;
+    color: var(--fog);
+    margin-bottom: 2.5rem;
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+  }
+  .intro-tagline {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 1.2rem;
+    color: var(--sand);
+    margin-bottom: 3rem;
+    line-height: 1.6;
+  }
+  .btn-primary {
+    background: var(--leaf);
+    color: var(--forest);
+    border: none;
+    padding: 1rem 2.5rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.15);
+    transform: translateX(-100%);
+    transition: transform 0.3s;
+  }
+  .btn-primary:hover::after { transform: translateX(0); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(82,183,136,0.35); }
+  .btn-primary:active { transform: translateY(0); }
+
+  /* ── GAME HUD ── */
+  #game { background: var(--cream); }
+
+  .hud {
+    background: var(--forest);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 20px rgba(26,58,42,0.3);
+  }
+  .hud-brand {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    color: var(--leaf);
+    flex-shrink: 0;
+    letter-spacing: -0.01em;
+  }
+  .hud-quarter {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--fog);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .hud-metrics {
+    display: flex;
+    gap: 1.2rem;
+    flex: 1;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .metric {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    min-width: 80px;
+  }
+  .metric-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fog);
+    margin-bottom: 0.2rem;
+  }
+  .metric-bar-wrap {
+    width: 80px;
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.2rem;
+  }
+  .metric-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .metric-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--white);
+  }
+  .metric-bar.profit { background: var(--profit-color); }
+  .metric-bar.carbon { background: var(--carbon-color); }
+  .metric-bar.trust  { background: var(--trust-color); }
+
+  .ip-badge {
+    background: rgba(228,160,32,0.15);
+    border: 1px solid rgba(228,160,32,0.3);
+    color: var(--amber);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    padding: 0.3em 0.7em;
+    border-radius: 2px;
+    flex-shrink: 0;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── MAIN CONTENT ── */
+  .game-main {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  @media(max-width:700px){ .game-main{grid-template-columns:1fr;} }
+
+  /* ── PHASE HEADER ── */
+  .phase-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--moss);
+    margin-bottom: 0.4rem;
+  }
+
+  /* ── ANALYZE PANEL ── */
+  .analyze-panel {
+    background: var(--white);
+    border: 1px solid var(--sand);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .analyze-panel::before {
+    content: 'ANALYZE';
+    position: absolute;
+    top: 1rem; right: 1.2rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.25em;
+    color: rgba(138,158,147,0.4);
+  }
+  .analyze-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .analyze-card {
+    padding: 1rem;
+    background: var(--cream);
+    border-left: 3px solid;
+    position: relative;
+  }
+  .analyze-card.profit { border-color: var(--profit-color); }
+  .analyze-card.carbon { border-color: var(--carbon-color); }
+  .analyze-card.trust  { border-color: var(--trust-color); }
+  .analyze-card-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fog);
+    margin-bottom: 0.4rem;
+  }
+  .analyze-card-val {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+  .analyze-card.profit .analyze-card-val { color: var(--moss); }
+  .analyze-card.carbon .analyze-card-val { color: var(--rust); }
+  .analyze-card.trust  .analyze-card-val { color: var(--amber); }
+  .analyze-card-note {
+    font-size: 0.72rem;
+    color: var(--fog);
+    line-height: 1.4;
+  }
+  .warning-tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    padding: 0.2em 0.5em;
+    background: rgba(196,75,43,0.12);
+    color: var(--rust);
+    border-radius: 2px;
+    margin-top: 0.3rem;
+  }
+
+  /* ── DILEMMA PANEL ── */
+  .dilemma-panel {
+    background: var(--forest);
+    color: var(--white);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .dilemma-panel::after {
+    content: '';
+    position: absolute;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(82,183,136,0.12) 0%, transparent 70%);
+    bottom: -60px; right: -60px;
+  }
+  .dilemma-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--leaf);
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .dilemma-tag::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--leaf);
+    animation: blink 1.5s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .dilemma-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    margin-bottom: 0.6rem;
+    line-height: 1.3;
+    color: var(--white);
+  }
+  .dilemma-context {
+    font-size: 0.82rem;
+    color: rgba(248,244,236,0.7);
+    line-height: 1.6;
+    margin-bottom: 1.4rem;
+    max-width: 540px;
+  }
+  .choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+    position: relative;
+    z-index: 1;
+  }
+  @media(max-width:560px){ .choices{grid-template-columns:1fr;} }
+  .choice-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--white);
+    padding: 1rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    font-family: 'Syne', sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+  .choice-btn:hover {
+    background: rgba(82,183,136,0.15);
+    border-color: var(--leaf);
+    transform: translateY(-1px);
+  }
+  .choice-btn:active { transform: translateY(0); }
+  .choice-letter {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--leaf);
+    margin-bottom: 0.4rem;
+    display: block;
+  }
+  .choice-text {
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-bottom: 0.4rem;
+  }
+  .choice-effects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.5rem;
+  }
+  .effect-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    padding: 0.15em 0.45em;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+  }
+  .effect-tag.pos { background: rgba(82,183,136,0.2); color: #95d5b2; }
+  .effect-tag.neg { background: rgba(196,75,43,0.2); color: #e8a090; }
+  .effect-tag.neu { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
+
+  /* ── INVEST PANEL ── */
+  .invest-panel {
+    background: var(--white);
+    border: 1px solid var(--sand);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .invest-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    margin-bottom: 0.3rem;
+  }
+  .invest-desc {
+    font-size: 0.78rem;
+    color: var(--fog);
+    margin-bottom: 1.2rem;
+    line-height: 1.5;
+  }
+  .invest-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+  }
+  @media(max-width:460px){ .invest-options{grid-template-columns:1fr;} }
+  .invest-opt {
+    border: 1px solid var(--sand);
+    padding: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .invest-opt:hover { border-color: var(--moss); background: rgba(45,106,79,0.04); }
+  .invest-opt.selected { border-color: var(--moss); background: rgba(45,106,79,0.08); }
+  .invest-opt.disabled { opacity: 0.4; cursor: not-allowed; }
+  .invest-opt-name {
+    font-weight: 700;
+    font-size: 0.82rem;
+    margin-bottom: 0.2rem;
+  }
+  .invest-opt-desc {
+    font-size: 0.72rem;
+    color: var(--fog);
+    line-height: 1.4;
+    margin-bottom: 0.4rem;
+  }
+  .invest-opt-cost {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--amber);
+    letter-spacing: 0.06em;
+  }
+
+  /* ── RESOLVE PANEL ── */
+  .resolve-panel {
+    background: var(--charcoal);
+    color: var(--white);
+    padding: 1.5rem;
+    display: none;
+  }
+  .resolve-panel.visible { display: block; }
+  .resolve-headline {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    color: var(--white);
+  }
+  .resolve-body {
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.6;
+    margin-bottom: 1.2rem;
+  }
+  .pulse-card {
+    background: rgba(255,255,255,0.05);
+    border-left: 3px solid var(--leaf);
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.6rem;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.8);
+    font-style: italic;
+    line-height: 1.5;
+  }
+  .pulse-card.negative { border-color: var(--rust); }
+  .delta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+  }
+  .delta-label { color: var(--fog); flex: 1; }
+  .delta-val { font-weight: 500; }
+  .delta-val.pos { color: var(--leaf); }
+  .delta-val.neg { color: #e8a090; }
+  .btn-next {
+    margin-top: 1rem;
+    background: var(--leaf);
+    color: var(--forest);
+    border: none;
+    padding: 0.8rem 2rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: block;
+  }
+  .btn-next:hover { background: var(--mint); }
+
+  /* ── SIDEBAR ── */
+  .sidebar { display: flex; flex-direction: column; gap: 1rem; }
+
+  .sidebar-card {
+    background: var(--white);
+    border: 1px solid var(--sand);
+    padding: 1.2rem;
+  }
+  .sidebar-card-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--fog);
+    margin-bottom: 0.8rem;
+  }
+
+  .legacy-timeline { display: flex; flex-direction: column; gap: 0.5rem; }
+  .legacy-event {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: all 0.4s;
+  }
+  .legacy-event.show { opacity: 1; transform: translateX(0); }
+  .legacy-event-q {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--leaf);
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+    width: 22px;
+  }
+  .legacy-event-text { color: var(--charcoal); }
+  .legacy-event-text.warn { color: var(--rust); }
+
+  .goals-list { display: flex; flex-direction: column; gap: 0.4rem; }
+  .goal-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.77rem;
+    color: var(--charcoal);
+    line-height: 1.4;
+  }
+  .goal-check {
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--sand);
+    border-radius: 2px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    color: var(--moss);
+    transition: all 0.3s;
+  }
+  .goal-check.done { background: var(--leaf); border-color: var(--leaf); color: var(--white); }
+  .goal-check.fail { background: var(--rust); border-color: var(--rust); color: var(--white); }
+
+  /* ── END SCREEN ── */
+  #end {
+    align-items: center;
+    justify-content: center;
+    background: var(--forest);
+    padding: 2rem;
+  }
+  .end-inner {
+    max-width: 580px;
+    width: 100%;
+    text-align: center;
+  }
+  .end-outcome-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--leaf);
+    margin-bottom: 1rem;
+  }
+  .end-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2rem, 7vw, 3.5rem);
+    color: var(--white);
+    margin-bottom: 1rem;
+    line-height: 1.1;
+  }
+  .end-desc {
+    font-size: 0.9rem;
+    color: rgba(248,244,236,0.75);
+    line-height: 1.7;
+    margin-bottom: 2rem;
+  }
+  .end-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .end-stat {
+    background: rgba(255,255,255,0.06);
+    padding: 1rem;
+  }
+  .end-stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--fog);
+    margin-bottom: 0.4rem;
+  }
+  .end-stat-val {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.8rem;
+    color: var(--white);
+  }
+  .reflection-box {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 1.2rem;
+    text-align: left;
+    margin-bottom: 2rem;
+  }
+  .reflection-box h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--leaf);
+    margin-bottom: 0.6rem;
+  }
+  .reflection-points { list-style: none; }
+  .reflection-points li {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.6;
+    padding-left: 1.2rem;
+    position: relative;
+    margin-bottom: 0.4rem;
+  }
+  .reflection-points li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--leaf);
+  }
+
+  .progress-dots {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    transition: background 0.3s;
+  }
+  .dot.done { background: var(--leaf); }
+  .dot.current { background: var(--amber); }
+
+  /* ── TRANSITIONS ── */
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+
+  .shake { animation: shake 0.4s ease; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0);}
+    20%,60%{transform:translateX(-5px);}
+    40%,80%{transform:translateX(5px);}
+  }
+
+  /* ── PHASE PROGRESS ── */
+  .phase-steps {
+    display: flex;
+    gap: 0;
+    margin-bottom: 1.2rem;
+    overflow: hidden;
+  }
+  .phase-step {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem 0.3rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fog);
+    border-bottom: 2px solid var(--sand);
+    transition: all 0.3s;
+  }
+  .phase-step.active {
+    color: var(--moss);
+    border-bottom-color: var(--moss);
+    font-weight: 500;
+  }
+  .phase-step.done {
+    color: var(--leaf);
+    border-bottom-color: rgba(82,183,136,0.4);
+  }
+
+  /* ── TOOLTIP / INFO ── */
+  .info-strip {
+    background: rgba(228,160,32,0.1);
+    border-left: 3px solid var(--amber);
+    padding: 0.6rem 0.9rem;
+    font-size: 0.75rem;
+    color: var(--charcoal);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+
+  /* disabled state */
+  .choice-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .choice-btn:disabled:hover { transform: none; box-shadow: none; }
+</style>
 </head>
 <body>
-  <h1>Hello World!</h1>
-  <p>This site will soon contain interactive data visualizations about crime in San Francisco.</p>
+
+<!-- ══════════════════════════════════════ INTRO SCREEN -->
+<div id="intro" class="screen active">
+  <div class="intro-inner">
+    <div class="intro-badge">Serious Game · Prototype v0.1</div>
+    <div class="intro-title">The <em>Green</em><br>Ledger</div>
+    <p class="intro-tagline">"Save the world. Pay the rent. Both."</p>
+    <p class="intro-subtitle">
+      You are the founder of a fast-growing startup.<br>
+      Over 8 quarters, navigate the tension between profit and planet.<br>
+      Every decision has consequences. Some arrive immediately — others haunt you.
+    </p>
+    <div class="progress-dots" id="intro-dots">
+      <div class="dot current"></div><div class="dot"></div><div class="dot"></div>
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      <div class="dot"></div><div class="dot"></div>
+    </div>
+    <br><br>
+    <button class="btn-primary" onclick="startGame()">Start Your Journey →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ GAME SCREEN -->
+<div id="game" class="screen">
+
+  <!-- HUD -->
+  <div class="hud">
+    <span class="hud-brand">The Green Ledger</span>
+    <span class="hud-quarter" id="hud-quarter">Q1 of 8</span>
+    <div class="hud-metrics">
+      <div class="metric">
+        <div class="metric-label">Profit</div>
+        <div class="metric-bar-wrap"><div class="metric-bar profit" id="bar-profit" style="width:60%"></div></div>
+        <div class="metric-val" id="val-profit">12%</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Carbon</div>
+        <div class="metric-bar-wrap"><div class="metric-bar carbon" id="bar-carbon" style="width:70%"></div></div>
+        <div class="metric-val" id="val-carbon">70t</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Trust</div>
+        <div class="metric-bar-wrap"><div class="metric-bar trust" id="bar-trust" style="width:55%"></div></div>
+        <div class="metric-val" id="val-trust">55%</div>
+      </div>
+    </div>
+    <div class="ip-badge" id="ip-badge">⬡ 3 IP</div>
+  </div>
+
+  <div class="game-main">
+    <div class="left-col">
+
+      <!-- Phase steps -->
+      <div class="phase-steps">
+        <div class="phase-step active" id="ps-analyze">① Analyze</div>
+        <div class="phase-step" id="ps-decide">② Decide</div>
+        <div class="phase-step" id="ps-invest">③ Invest</div>
+        <div class="phase-step" id="ps-resolve">④ Resolve</div>
+      </div>
+
+      <!-- ANALYZE PHASE -->
+      <div id="phase-analyze" class="fade-in">
+        <div class="phase-label">Phase 1 — Dashboard</div>
+        <div class="analyze-panel">
+          <div style="font-family:'DM Serif Display',serif;font-size:1rem;margin-bottom:0.3rem;">Your Company at a Glance</div>
+          <div style="font-size:0.78rem;color:var(--fog);margin-bottom:0.8rem;line-height:1.5;" id="analyze-narrative">
+            You're heading into Q1. Revenue is steady but margins are under pressure. Your carbon footprint is high and regulators are watching. What will you sacrifice first?
+          </div>
+          <div class="analyze-grid">
+            <div class="analyze-card profit">
+              <div class="analyze-card-label">Profit Margin</div>
+              <div class="analyze-card-val" id="ac-profit">12%</div>
+              <div class="analyze-card-note">Floor: 5% — below this, the board fires you.</div>
+            </div>
+            <div class="analyze-card carbon">
+              <div class="analyze-card-label">Carbon Footprint</div>
+              <div class="analyze-card-val" id="ac-carbon">70t</div>
+              <div class="analyze-card-note" id="ac-carbon-note">Regulators flag you above 80t. Red zone = shutdown.</div>
+            </div>
+            <div class="analyze-card trust">
+              <div class="analyze-card-label">Brand Trust</div>
+              <div class="analyze-card-val" id="ac-trust">55%</div>
+              <div class="analyze-card-note">Below 30% — investors pull funding. Stay visible.</div>
+            </div>
+          </div>
+          <div id="analyze-warnings" style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;"></div>
+        </div>
+        <div class="info-strip" id="analyze-tip">
+          💡 <strong>Analyze before you act.</strong> Your three metrics are connected — improving carbon often costs profit, and cutting corners destroys trust over time.
+        </div>
+        <button class="btn-next" onclick="goToPhase('decide')">Proceed to Dilemma →</button>
+      </div>
+
+      <!-- DECIDE PHASE -->
+      <div id="phase-decide" style="display:none;" class="fade-in">
+        <div class="phase-label">Phase 2 — The Dilemma</div>
+        <div class="dilemma-panel" id="dilemma-panel">
+          <div class="dilemma-tag" id="dilemma-category">SUPPLY CHAIN</div>
+          <div class="dilemma-title" id="dilemma-title">Loading dilemma…</div>
+          <div class="dilemma-context" id="dilemma-context"></div>
+          <div class="choices" id="choices-container"></div>
+        </div>
+      </div>
+
+      <!-- INVEST PHASE -->
+      <div id="phase-invest" style="display:none;" class="fade-in">
+        <div class="phase-label">Phase 3 — Innovation Points</div>
+        <div class="invest-panel">
+          <div class="invest-title">Allocate Your Innovation Points</div>
+          <div class="invest-desc" id="invest-desc">You have <strong id="ip-display">3</strong> Innovation Points to spend this quarter. Invest wisely — these shape future costs and capabilities. You may skip investing.</div>
+          <div class="invest-options" id="invest-options"></div>
+        </div>
+        <div style="display:flex;gap:0.8rem;flex-wrap:wrap;">
+          <button class="btn-next" onclick="applyInvestment()">Confirm Investment →</button>
+          <button class="btn-next" style="background:var(--sand);color:var(--charcoal);" onclick="skipInvestment()">Skip This Quarter</button>
+        </div>
+      </div>
+
+      <!-- RESOLVE PHASE -->
+      <div id="phase-resolve" style="display:none;" class="fade-in">
+        <div class="phase-label">Phase 4 — Market Reaction</div>
+        <div class="resolve-panel visible" id="resolve-panel">
+          <div class="resolve-headline" id="resolve-headline">The Market Has Spoken</div>
+          <div class="resolve-body" id="resolve-body"></div>
+          <div id="public-pulse"></div>
+          <div style="margin-top:1rem;margin-bottom:0.4rem;font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;color:var(--fog);text-transform:uppercase;">Metric Changes</div>
+          <div id="delta-display"></div>
+          <div id="legacy-warning" style="display:none;margin-top:0.8rem;background:rgba(196,75,43,0.15);border-left:3px solid var(--rust);padding:0.7rem 0.9rem;font-size:0.78rem;color:#e8a090;line-height:1.5;"></div>
+          <button class="btn-next" id="next-quarter-btn" onclick="nextQuarter()">Next Quarter →</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-title">Objectives</div>
+        <div class="goals-list">
+          <div class="goal-item">
+            <div class="goal-check" id="goal-zero" title="Reach Net-Zero">●</div>
+            <span>Reach Net-Zero carbon (≤10t) by Q8</span>
+          </div>
+          <div class="goal-item">
+            <div class="goal-check" id="goal-profit" title="Stay solvent">●</div>
+            <span>Keep profit margin above 5%</span>
+          </div>
+          <div class="goal-item">
+            <div class="goal-check" id="goal-trust" title="Keep investors">●</div>
+            <span>Maintain brand trust above 30%</span>
+          </div>
+          <div class="goal-item">
+            <div class="goal-check" id="goal-survive" title="Survive 8 quarters">●</div>
+            <span>Survive all 8 quarters</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-title">Legacy Score — Cumulative Decisions</div>
+        <div class="legacy-timeline" id="legacy-timeline">
+          <div style="font-size:0.75rem;color:var(--fog);font-style:italic;">Your decisions will echo here…</div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-title">Your Holdings</div>
+        <div id="upgrades-list" style="font-size:0.75rem;color:var(--fog);line-height:1.8;">
+          No upgrades yet.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ END SCREEN -->
+<div id="end" class="screen">
+  <div class="end-inner">
+    <div class="end-outcome-tag" id="end-tag">GAME OVER</div>
+    <div class="end-title" id="end-title">The Visionary</div>
+    <div class="end-desc" id="end-desc"></div>
+    <div class="end-stats">
+      <div class="end-stat">
+        <div class="end-stat-label">Final Profit</div>
+        <div class="end-stat-val" id="end-profit">—</div>
+      </div>
+      <div class="end-stat">
+        <div class="end-stat-label">Carbon</div>
+        <div class="end-stat-val" id="end-carbon">—</div>
+      </div>
+      <div class="end-stat">
+        <div class="end-stat-label">Brand Trust</div>
+        <div class="end-stat-val" id="end-trust">—</div>
+      </div>
+    </div>
+    <div class="reflection-box" id="reflection-box">
+      <h3>Reflect on Your Journey</h3>
+      <ul class="reflection-points" id="reflection-points"></ul>
+    </div>
+    <button class="btn-primary" onclick="restartGame()">Play Again ↺</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════ GAME STATE
+const state = {
+  quarter: 1,
+  profit: 12,      // percentage
+  carbon: 70,      // tonnes (lower = better)
+  trust: 55,       // percentage
+  ip: 3,           // innovation points
+  upgrades: [],    // purchased upgrades
+  legacyEvents: [],
+  pendingLegacy: [], // {quarter, text, profit, carbon, trust}
+  choiceMade: null,
+  investmentMade: null,
+  alive: true,
+  carbonReduction: 0, // from upgrades
+  profitBonus: 0,
+  trustBonus: 0,
+};
+
+// ═══════════════════════════════ DILEMMAS (8 quarters)
+const dilemmas = [
+  {
+    quarter: 1,
+    category: "SUPPLY CHAIN",
+    title: "The Cheap Supplier Problem",
+    context: "Your primary packaging supplier is 20% cheaper than eco-certified alternatives. Your investors are pushing for margin growth. But your eco-packaging supplier has reached out with a bioplastic option — at a cost.",
+    choiceA: {
+      text: "Stick with cheap supplier — protect margins now.",
+      effects: [{label:"Profit +3%",type:"pos"},{label:"Carbon +8t",type:"neg"},{label:"Trust -5%",type:"neg"}],
+      delta: {profit:3, carbon:8, trust:-5},
+      legacy: {delay:3, text:"The cheap packaging contract quietly dumps microplastics into the supply chain. A journalist notices.", delta:{profit:-6, carbon:5, trust:-12}},
+      pulse: ["Great prices! Competitive brand.", "Hmm, not loving the plastic packaging."],
+    },
+    choiceB: {
+      text: "Switch to bioplastics — invest in brand credibility.",
+      effects: [{label:"Profit -4%",type:"neg"},{label:"Carbon -12t",type:"pos"},{label:"Trust +8%",type:"pos"}],
+      delta: {profit:-4, carbon:-12, trust:8},
+      legacy: null,
+      pulse: ["Love the new eco-packaging! Finally a brand I trust.", "Prices went up a bit — but I get it."],
+    }
+  },
+  {
+    quarter: 2,
+    category: "OPERATIONS",
+    title: "The Night-Shift Energy Deal",
+    context: "Your factory can run at cheaper rates on the national grid's off-peak hours — but that grid runs on coal overnight. Alternatively, you can sign a green energy contract that costs €8k more per quarter.",
+    choiceA: {
+      text: "Use cheap coal-grid power at night.",
+      effects: [{label:"Profit +5%",type:"pos"},{label:"Carbon +15t",type:"neg"},{label:"Trust -3%",type:"neg"}],
+      delta: {profit:5, carbon:15, trust:-3},
+      legacy: {delay:2, text:"An ESG auditor discovers your energy source. ESG investors quietly reduce positions.", delta:{profit:-4, carbon:0, trust:-10}},
+      pulse: ["You raised margins but how?", "Heard they're using dirty energy. Disappointing."],
+    },
+    choiceB: {
+      text: "Sign the green energy contract.",
+      effects: [{label:"Profit -3%",type:"neg"},{label:"Carbon -18t",type:"pos"},{label:"Trust +10%",type:"pos"}],
+      delta: {profit:-3, carbon:-18, trust:10},
+      legacy: null,
+      pulse: ["They're fully renewable now? Buying double.", "Brand trust score just hit a new high."],
+    }
+  },
+  {
+    quarter: 3,
+    category: "MARKETING",
+    title: "The Green Claim Temptation",
+    context: "Your marketing team proposes a bold '100% Sustainable' campaign. The truth: you're about 60% of the way there. The campaign would massively boost Trust — but risks a greenwashing backlash if scrutinised.",
+    choiceA: {
+      text: "Run the campaign. The boost is worth the risk.",
+      effects: [{label:"Trust +18%",type:"pos"},{label:"Profit +2%",type:"pos"},{label:"Risk: Greenwash",type:"neg"}],
+      delta: {profit:2, carbon:0, trust:18},
+      legacy: {delay:2, text:"A sustainability NGO publishes a teardown of your '100% sustainable' claim. PR crisis erupts.", delta:{profit:-5, carbon:0, trust:-25}},
+      pulse: ["Love this brand! Setting the standard.", "Wait — this seems like greenwashing. Thread incoming..."],
+    },
+    choiceB: {
+      text: "Run an honest '60% there, working on it' campaign.",
+      effects: [{label:"Trust +6%",type:"pos"},{label:"Profit +1%",type:"pos"},{label:"Authentic",type:"neu"}],
+      delta: {profit:1, carbon:0, trust:6},
+      legacy: null,
+      pulse: ["Really respect the honesty. Rare these days.", "Appreciated — shows real accountability."],
+    }
+  },
+  {
+    quarter: 4,
+    category: "WASTE MANAGEMENT",
+    title: "The Waste Leak Decision",
+    context: "Your operations team flags a minor chemical seep near your warehouse — costing €3k to fix now. Fixing it delays a product launch. Ignoring it risks regulatory fines later, but nobody's noticed yet.",
+    choiceA: {
+      text: "Ignore it. Fix it next quarter if it gets worse.",
+      effects: [{label:"Profit +3%",type:"pos"},{label:"Launch on time",type:"neu"},{label:"Future risk ↑",type:"neg"}],
+      delta: {profit:3, carbon:3, trust:0},
+      legacy: {delay:3, text:"The chemical leak worsens. Regulators fine you €18k and demand emergency remediation.", delta:{profit:-8, carbon:0, trust:-14}},
+      pulse: ["Launch looks great! Love the new product.", "Someone leaked photos of a waste issue nearby."],
+    },
+    choiceB: {
+      text: "Fix it now. Ethics over deadlines.",
+      effects: [{label:"Profit -2%",type:"neg"},{label:"Carbon -4t",type:"pos"},{label:"Trust +5%",type:"pos"}],
+      delta: {profit:-2, carbon:-4, trust:5},
+      legacy: null,
+      pulse: ["Delayed launch but handled it responsibly.", "Respect. They could have cut corners."],
+    }
+  },
+  {
+    quarter: 5,
+    category: "INVESTOR PRESSURE",
+    title: "The Growth-or-Green Pivot",
+    context: "A major investor is demanding you cut the sustainability R&D budget by 40% to accelerate unit sales. They'll inject €200k — but your carbon trajectory will reverse for two quarters.",
+    choiceA: {
+      text: "Take the money. Greentech can wait.",
+      effects: [{label:"Profit +6%",type:"pos"},{label:"Carbon +10t",type:"neg"},{label:"Trust -8%",type:"neg"}],
+      delta: {profit:6, carbon:10, trust:-8},
+      legacy: {delay:2, text:"The R&D pause stalls your carbon trajectory. A competitor launches Net-Zero ahead of you, stealing ESG press.", delta:{profit:-3, carbon:5, trust:-10}},
+      pulse: ["Growth mode! But feels like they sold out.", "That investor pivot made me nervous about their values."],
+    },
+    choiceB: {
+      text: "Decline. Stay the course on sustainability.",
+      effects: [{label:"Carbon -6t",type:"pos"},{label:"Trust +9%",type:"pos"},{label:"Profit -2%",type:"neg"}],
+      delta: {profit:-2, carbon:-6, trust:9},
+      legacy: null,
+      pulse: ["Turned down easy money for the mission. Respect.", "This brand gets it. Long-term thinkers."],
+    }
+  },
+  {
+    quarter: 6,
+    category: "LOGISTICS",
+    title: "The Fleet Transition",
+    context: "Your delivery fleet is due for renewal. Electric vans cost 35% more upfront but save on fuel and cut carbon by 30t. Diesel vans are cheaper and available immediately.",
+    choiceA: {
+      text: "Buy diesel vans. Cash flow matters now.",
+      effects: [{label:"Profit +4%",type:"pos"},{label:"Carbon +12t",type:"neg"},{label:"Trust -6%",type:"neg"}],
+      delta: {profit:4, carbon:12, trust:-6},
+      legacy: {delay:2, text:"A new city carbon tax on diesel fleets hits you hard — unexpected quarterly expense.", delta:{profit:-7, carbon:0, trust:0}},
+      pulse: ["Diesel? In this economy? Big miss.", "Cheaper delivery = better prices. Fans of that."],
+    },
+    choiceB: {
+      text: "Invest in the EV fleet.",
+      effects: [{label:"Carbon -30t",type:"pos"},{label:"Trust +12%",type:"pos"},{label:"Profit -5%",type:"neg"}],
+      delta: {profit:-5, carbon:-30, trust:12},
+      legacy: null,
+      pulse: ["All-electric fleet? Incredible. Telling everyone.", "Sets the bar for the whole industry."],
+    }
+  },
+  {
+    quarter: 7,
+    category: "REGULATION",
+    title: "The Carbon Tax Lobby",
+    context: "A new carbon tax is being proposed. You can lobby against it — saving €12k/quarter — or publicly support it, gaining trust with ESG investors and consumers but paying the tax.",
+    choiceA: {
+      text: "Lobby against the carbon tax.",
+      effects: [{label:"Profit +5%",type:"pos"},{label:"Trust -15%",type:"neg"},{label:"Political risk",type:"neg"}],
+      delta: {profit:5, carbon:0, trust:-15},
+      legacy: {delay:1, text:"Your lobbying becomes public. ESG press picks it up. 'Greenwash brand caught blocking climate progress.'", delta:{profit:-4, carbon:0, trust:-16}},
+      pulse: ["Carbon tax lobby? I'm done with this brand.", "Unacceptable. Boycott incoming."],
+    },
+    choiceB: {
+      text: "Publicly support the carbon tax.",
+      effects: [{label:"Trust +15%",type:"pos"},{label:"Profit -4%",type:"neg"},{label:"ESG credibility",type:"pos"}],
+      delta: {profit:-4, carbon:0, trust:15},
+      legacy: null,
+      pulse: ["They backed the carbon tax? Legendary move.", "ESG investor here — just doubled my position."],
+    }
+  },
+  {
+    quarter: 8,
+    category: "FINAL QUARTER",
+    title: "The Net-Zero Sprint",
+    context: "This is your last quarter. You're close to Net-Zero but need one final push. You can pull resources from R&D to aggressively reduce emissions — or hold reserves and finish with healthy margins but short of the goal.",
+    choiceA: {
+      text: "Go all-in — hit Net-Zero whatever the cost.",
+      effects: [{label:"Carbon -20t",type:"pos"},{label:"Profit -6%",type:"neg"},{label:"Legacy ✓",type:"pos"}],
+      delta: {profit:-6, carbon:-20, trust:10},
+      legacy: null,
+      pulse: ["THEY DID IT. Net-Zero achieved!", "History made. Industry will follow."],
+    },
+    choiceB: {
+      text: "Protect margins. Finish strong financially.",
+      effects: [{label:"Profit +4%",type:"pos"},{label:"Carbon +5t",type:"neg"},{label:"Trust -5%",type:"neg"}],
+      delta: {profit:4, carbon:5, trust:-5},
+      legacy: null,
+      pulse: ["Good margins but missed the Net-Zero target.", "So close to Net-Zero... why stop now?"],
+    }
+  }
+];
+
+// ═══════════════════════════════ INVEST OPTIONS
+const investOptions = [
+  { id:"bio", name:"Bio-Material R&D", desc:"Invest in alternative material research to cut future carbon costs.", cost:2, effect:"Reduces carbon by 8t next quarter.", applyCb: ()=>{ state.carbon -= 8; addLegacy("Invested in Bio-Material R&D — carbon trajectory improving.", false); } },
+  { id:"pr", name:"Sustainability Marketing", desc:"Communicate your green steps — build brand credibility.", cost:1, effect:"Boosts Trust +8% next quarter.", applyCb: ()=>{ state.trust += 8; addLegacy("Launched sustainability comms campaign.", false); } },
+  { id:"ops", name:"Process Efficiency", desc:"Lean manufacturing audit — cuts operational waste.", cost:2, effect:"Profit +3%, Carbon -5t.", applyCb: ()=>{ state.profit += 3; state.carbon -= 5; addLegacy("Operations audit complete — leaner, greener.", false); } },
+  { id:"solar", name:"Rooftop Solar Install", desc:"Cut grid dependency. Long-term carbon wins.", cost:3, effect:"Carbon -15t permanently (stacks every turn).", applyCb: ()=>{ state.carbon -= 15; state.carbonReduction += 5; addLegacy("Solar panels installed — permanent carbon reduction.", false); } },
+  { id:"skip", name:"Save IPs for later", desc:"Bank your innovation points for a crucial future moment.", cost:0, effect:"Carry forward all IP.", applyCb: ()=>{ addLegacy("Chose to save Innovation Points this quarter.", false); } },
+];
+
+// ═══════════════════════════════ UTILS
+function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+function sign(n){ return n >= 0 ? `+${n}` : `${n}`; }
+
+function updateHUD(){
+  document.getElementById('hud-quarter').textContent = `Q${state.quarter} of 8`;
+  document.getElementById('ip-badge').textContent = `⬡ ${state.ip} IP`;
+  document.getElementById('bar-profit').style.width = clamp(state.profit*3, 0, 100)+'%';
+  document.getElementById('bar-carbon').style.width = clamp(state.carbon, 0, 100)+'%';
+  document.getElementById('bar-trust').style.width = clamp(state.trust, 0, 100)+'%';
+  document.getElementById('val-profit').textContent = state.profit+'%';
+  document.getElementById('val-carbon').textContent = state.carbon+'t';
+  document.getElementById('val-trust').textContent = state.trust+'%';
+  document.getElementById('ac-profit').textContent = state.profit+'%';
+  document.getElementById('ac-carbon').textContent = state.carbon+'t';
+  document.getElementById('ac-trust').textContent = state.trust+'%';
+
+  // Update dots
+  const dots = document.querySelectorAll('#intro-dots .dot');
+  dots.forEach((d,i)=>{
+    d.className = 'dot';
+    if(i < state.quarter-1) d.classList.add('done');
+    else if(i === state.quarter-1) d.classList.add('current');
+  });
+
+  // Goal checks
+  document.getElementById('goal-profit').textContent = state.profit >= 5 ? '✓' : '✗';
+  document.getElementById('goal-profit').className = 'goal-check ' + (state.profit >= 5 ? 'done' : 'fail');
+  document.getElementById('goal-trust').textContent = state.trust >= 30 ? '✓' : '✗';
+  document.getElementById('goal-trust').className = 'goal-check ' + (state.trust >= 30 ? 'done' : 'fail');
+  document.getElementById('goal-zero').textContent = state.carbon <= 10 ? '✓' : '●';
+  document.getElementById('goal-zero').className = 'goal-check ' + (state.carbon <= 10 ? 'done' : '');
+  document.getElementById('goal-survive').textContent = state.alive ? '●' : '✗';
+
+  // Analyze warnings
+  const warns = document.getElementById('analyze-warnings');
+  warns.innerHTML = '';
+  if(state.profit < 8) warns.innerHTML += '<span class="warning-tag">⚠ Profit margin low — approaching floor</span>';
+  if(state.carbon > 75) warns.innerHTML += '<span class="warning-tag">⚠ Carbon near Red Zone (80t limit)</span>';
+  if(state.trust < 40) warns.innerHTML += '<span class="warning-tag">⚠ Brand trust declining</span>';
+}
+
+function setPhaseActive(p){
+  ['analyze','decide','invest','resolve'].forEach(ph=>{
+    const el = document.getElementById(`ps-${ph}`);
+    const panel = document.getElementById(`phase-${ph}`);
+    if(ph === p){ el.className='phase-step active'; if(panel){panel.style.display=''; panel.classList.add('fade-in');} }
+    else if(['analyze','decide','invest','resolve'].indexOf(ph) < ['analyze','decide','invest','resolve'].indexOf(p)){
+      el.className='phase-step done'; if(panel) panel.style.display='none';
+    } else {
+      el.className='phase-step'; if(panel) panel.style.display='none';
+    }
+  });
+}
+
+function addLegacy(text, isWarn){
+  state.legacyEvents.push({text, warn: isWarn});
+  renderLegacy();
+}
+
+function renderLegacy(){
+  const tl = document.getElementById('legacy-timeline');
+  tl.innerHTML = '';
+  if(state.legacyEvents.length === 0){
+    tl.innerHTML = '<div style="font-size:0.75rem;color:var(--fog);font-style:italic;">Your decisions will echo here…</div>';
+    return;
+  }
+  state.legacyEvents.slice(-6).forEach((ev,i)=>{
+    const div = document.createElement('div');
+    div.className = 'legacy-event show';
+    div.innerHTML = `<span class="legacy-event-q">Q${Math.max(1,state.quarter-state.legacyEvents.length+i+1)}</span><span class="legacy-event-text ${ev.warn?'warn':''}">${ev.text}</span>`;
+    tl.appendChild(div);
+  });
+}
+
+function renderUpgrades(){
+  const ul = document.getElementById('upgrades-list');
+  if(state.upgrades.length === 0){ ul.textContent = 'No upgrades yet.'; return; }
+  ul.innerHTML = state.upgrades.map(u=>`<div style="padding:0.2rem 0;border-bottom:1px solid var(--sand);">⬡ ${u}</div>`).join('');
+}
+
+// ═══════════════════════════════ PHASE TRANSITIONS
+function goToPhase(phase){
+  setPhaseActive(phase);
+  if(phase==='decide') renderDilemma();
+  if(phase==='invest') renderInvest();
+}
+
+// ═══════════════════════════════ ANALYZE NARRATIVE
+const narratives = [
+  "You're heading into Q1. Revenue is steady but margins are under pressure. Your carbon footprint is high and regulators are watching. What will you sacrifice first?",
+  "Q2: The first ripples of your Q1 choices are visible. Investors are asking questions. Your team is energised — or nervous.",
+  "Q3: Halfway through the year. Your brand is building a story. Is it the story you intended?",
+  "Q4: A quiet crisis or a quiet success — the cumulative weight of your choices is starting to show.",
+  "Q5: Investor pressure is peaking. The mid-game inflection point. Your culture will be tested.",
+  "Q6: Your infrastructure decisions now lock in costs and carbon for the next two years. Choose wisely.",
+  "Q7: Regulatory headwinds are intensifying. Your reputation is your most valuable asset.",
+  "Q8: The final quarter. This is where your leadership legacy is written.",
+];
+
+// ═══════════════════════════════ DILEMMA RENDERING
+function renderDilemma(){
+  const d = dilemmas[state.quarter-1];
+  document.getElementById('dilemma-category').textContent = d.category;
+  document.getElementById('dilemma-title').textContent = d.title;
+  document.getElementById('dilemma-context').textContent = d.context;
+
+  const container = document.getElementById('choices-container');
+  container.innerHTML = '';
+
+  [d.choiceA, d.choiceB].forEach((choice, idx)=>{
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    const effects = choice.effects.map(e=>`<span class="effect-tag ${e.type}">${e.label}</span>`).join('');
+    btn.innerHTML = `
+      <span class="choice-letter">${idx===0?'OPTION A':'OPTION B'}</span>
+      <div class="choice-text">${choice.text}</div>
+      <div class="choice-effects">${effects}</div>
+    `;
+    btn.onclick = () => makeChoice(idx===0?'A':'B');
+    container.appendChild(btn);
+  });
+}
+
+// ═══════════════════════════════ CHOICE
+function makeChoice(letter){
+  const d = dilemmas[state.quarter-1];
+  const choice = letter==='A' ? d.choiceA : d.choiceB;
+  state.choiceMade = choice;
+
+  // Disable buttons
+  document.querySelectorAll('.choice-btn').forEach(b=>b.disabled=true);
+
+  // Schedule legacy event if any
+  if(choice.legacy){
+    const trigger = state.quarter + choice.legacy.delay;
+    state.pendingLegacy.push({ trigger, text: choice.legacy.text, delta: choice.legacy.delta });
+  }
+
+  // Legacy note
+  addLegacy(`Q${state.quarter}: ${choice.text.substring(0,50)}…`, choice.legacy != null);
+
+  setTimeout(()=>goToPhase('invest'), 400);
+}
+
+// ═══════════════════════════════ INVEST RENDERING
+function renderInvest(){
+  document.getElementById('ip-display').textContent = state.ip;
+  const container = document.getElementById('invest-options');
+  container.innerHTML = '';
+
+  const available = investOptions.filter(o=>o.id!=='skip');
+  available.forEach(opt=>{
+    const div = document.createElement('div');
+    const canAfford = state.ip >= opt.cost;
+    div.className = 'invest-opt' + (canAfford?'':' disabled');
+    div.innerHTML = `
+      <div class="invest-opt-name">${opt.name}</div>
+      <div class="invest-opt-desc">${opt.desc}</div>
+      <div style="font-size:0.7rem;color:var(--moss);margin-bottom:0.3rem;">${opt.effect}</div>
+      <div class="invest-opt-cost">Cost: ${opt.cost} IP</div>
+    `;
+    if(canAfford){
+      div.onclick = () => toggleInvestOption(opt.id, div, opt.cost);
+    }
+    container.appendChild(div);
+  });
+}
+
+function toggleInvestOption(id, el, cost){
+  if(el.classList.contains('selected')){
+    el.classList.remove('selected');
+    state.investmentMade = null;
+    state.ip += cost;
+  } else {
+    document.querySelectorAll('.invest-opt.selected').forEach(e=>{
+      const prevOpt = investOptions.find(o=>o.name===e.querySelector('.invest-opt-name').textContent);
+      if(prevOpt) state.ip += prevOpt.cost;
+      e.classList.remove('selected');
+    });
+    state.investmentMade = id;
+    el.classList.add('selected');
+    state.ip -= cost;
+  }
+  document.getElementById('ip-badge').textContent = `⬡ ${state.ip} IP`;
+}
+
+function applyInvestment(){
+  if(state.investmentMade){
+    const opt = investOptions.find(o=>o.id===state.investmentMade);
+    if(opt){
+      opt.applyCb();
+      if(!state.upgrades.includes(opt.name)) state.upgrades.push(opt.name);
+      renderUpgrades();
+    }
+  }
+  state.ip += 3; // replenish base IP
+  resolveQuarter();
+}
+
+function skipInvestment(){
+  state.ip += 3;
+  resolveQuarter();
+}
+
+// ═══════════════════════════════ RESOLVE
+function resolveQuarter(){
+  const choice = state.choiceMade;
+  if(!choice) return;
+
+  // Apply deltas
+  state.profit = clamp(state.profit + choice.delta.profit + state.profitBonus, 0, 40);
+  state.carbon = clamp(state.carbon + choice.delta.carbon - state.carbonReduction, 0, 120);
+  state.trust  = clamp(state.trust  + choice.delta.trust  + state.trustBonus,  0, 100);
+
+  // Check pending legacy events
+  const legacyTriggered = state.pendingLegacy.filter(l=>l.trigger===state.quarter);
+  legacyTriggered.forEach(l=>{
+    state.profit = clamp(state.profit + l.delta.profit, 0, 40);
+    state.carbon = clamp(state.carbon + l.delta.carbon, 0, 120);
+    state.trust  = clamp(state.trust  + l.delta.trust, 0, 100);
+    addLegacy(l.text, true);
+  });
+  state.pendingLegacy = state.pendingLegacy.filter(l=>l.trigger!==state.quarter);
+
+  updateHUD();
+
+  // Render resolve panel
+  const d = dilemmas[state.quarter-1];
+  const dname = choice === d.choiceA ? d.choiceA.text : d.choiceB.text;
+
+  document.getElementById('resolve-headline').textContent = state.quarter===8 ? "Year Complete — The Market Has Decided." : `Quarter ${state.quarter} Complete`;
+  document.getElementById('resolve-body').textContent = `You chose: "${dname}"`;
+
+  // Public pulse
+  const pp = document.getElementById('public-pulse');
+  pp.innerHTML = '<div style="font-family:\'DM Mono\',monospace;font-size:0.6rem;letter-spacing:0.15em;color:var(--fog);text-transform:uppercase;margin-bottom:0.5rem;">Public Pulse</div>';
+  choice.pulse.forEach((msg,i)=>{
+    const neg = i===1 && choice===d.choiceA;
+    pp.innerHTML += `<div class="pulse-card ${neg?'negative':''}">"${msg}"</div>`;
+  });
+
+  // Delta display
+  const dd = document.getElementById('delta-display');
+  dd.innerHTML = [
+    {label:'Profit Margin', val: choice.delta.profit + state.profitBonus},
+    {label:'Carbon Footprint', val: choice.delta.carbon - state.carbonReduction},
+    {label:'Brand Trust', val: choice.delta.trust + state.trustBonus},
+  ].map(r=>`<div class="delta-row"><span class="delta-label">${r.label}</span><span class="delta-val ${r.val>=0?'pos':'neg'}">${sign(r.val)}${r.label==='Carbon Footprint'?'t':'%'}</span></div>`).join('');
+
+  // Legacy warnings
+  if(legacyTriggered.length > 0){
+    const lw = document.getElementById('legacy-warning');
+    lw.style.display = 'block';
+    lw.textContent = `⚠ Past Decisions Catching Up: ${legacyTriggered.map(l=>l.text).join(' | ')}`;
+  } else {
+    document.getElementById('legacy-warning').style.display = 'none';
+  }
+
+  // Next button label
+  const nb = document.getElementById('next-quarter-btn');
+  nb.textContent = state.quarter >= 8 ? 'See Final Results →' : `Next Quarter (Q${state.quarter+1}) →`;
+
+  setPhaseActive('resolve');
+
+  // Check failure conditions
+  if(state.profit < 5){
+    nb.textContent = "The Board Has Called — See Your Results";
+    nb.onclick = ()=>endGame('bankrupt');
+  } else if(state.carbon > 90){
+    nb.textContent = "Regulators Have Shut You Down";
+    nb.onclick = ()=>endGame('shutdown');
+  } else if(state.trust < 20){
+    nb.textContent = "Investors Have Pulled Out";
+    nb.onclick = ()=>endGame('abandoned');
+  }
+}
+
+// ═══════════════════════════════ NEXT QUARTER
+function nextQuarter(){
+  if(state.quarter >= 8){ endGame('complete'); return; }
+  state.quarter++;
+  state.choiceMade = null;
+  state.investmentMade = null;
+
+  // Update analyze narrative
+  document.getElementById('analyze-narrative').textContent = narratives[state.quarter-1];
+
+  updateHUD();
+  setPhaseActive('analyze');
+}
+
+// ═══════════════════════════════ END GAME
+function endGame(reason){
+  document.querySelector('#game').classList.remove('active');
+  document.querySelector('#end').classList.add('active');
+
+  document.getElementById('end-profit').textContent = state.profit+'%';
+  document.getElementById('end-carbon').textContent = state.carbon+'t';
+  document.getElementById('end-trust').textContent = state.trust+'%';
+
+  let tag, title, desc, reflections;
+
+  if(reason==='complete'){
+    const netZero = state.carbon <= 10;
+    const profitStrong = state.profit >= 15;
+    const trustStrong = state.trust >= 70;
+
+    if(netZero && state.profit >= 10){
+      tag = '🌿 ULTIMATE WIN'; title = 'The Visionary';
+      desc = `You did it. Net-Zero achieved with a healthy ${state.profit}% profit margin. You built a business the world needed — and made it economically viable. This is the hard path. You walked it.`;
+      reflections = ['You proved sustainability and profitability are not opposites.','Your brand trust built a loyal customer base that weathered market turbulence.','Your early investments in carbon reduction compounded into a competitive advantage.'];
+    } else if(state.profit >= 20 && state.carbon > 40){
+      tag = '💰 PROFIT WINNER'; title = 'The Billionaire\'s Bargain';
+      desc = `You generated exceptional returns — ${state.profit}% profit margin is extraordinary. But the planet paid for it. Your carbon footprint of ${state.carbon}t tells a story your P&L doesn't. What did you leave behind?`;
+      reflections = ['Short-term profit came at long-term environmental cost.','Your brand avoided full greenwashing exposure — this time. But the risks were real.','Consider: what happens to this business model in a carbon-taxed future?'];
+    } else {
+      tag = '📊 GAME COMPLETE'; title = 'The Pragmatist';
+      desc = `You navigated 8 quarters without catastrophe — a genuine achievement. Your metrics tell a mixed story: ${state.profit}% profit, ${state.carbon}t carbon, ${state.trust}% trust. Not the Visionary outcome, but a real learning journey.`;
+      reflections = ['Tension between profit and sustainability is real — you felt it.','Some of your early decisions likely echoed into later quarters.','The Visionary outcome requires deliberate investment from Q1, not Q6.'];
+    }
+  } else if(reason==='bankrupt'){
+    tag = '📉 FAILURE'; title = 'Too Green, Too Fast';
+    desc = `Profit margin fell to ${state.profit}% and the board has removed you from leadership. This is the "going bankrupt being too green" failure. The game shows exactly where your cash flow failed — quarter by quarter.`;
+    reflections = ['Sustainability investment without financial runway is a recipe for failure.','Strategic sacrifice requires knowing when to protect margins.','Learning outcome: even green businesses must remain solvent to have impact.'];
+  } else if(reason==='shutdown'){
+    tag = '🚨 REGULATORY SHUTDOWN'; title = 'The Red Zone';
+    desc = `Carbon footprint hit ${state.carbon}t — regulators issued a shutdown order. Ignoring environmental limits doesn't delay consequences, it magnifies them. The Red Zone is real.`;
+    reflections = ['Regulatory risk is existential, not optional.','Carbon accumulated quietly before the crisis hit.','Small early investments in carbon reduction avoid catastrophic late-stage costs.'];
+  } else if(reason==='abandoned'){
+    tag = '💔 ABANDONED'; title = 'Trust Collapse';
+    desc = `Brand trust fell to ${state.trust}% and ESG investors withdrew funding. Without credibility, your business model collapsed. Consumers and investors vote with their behaviour.`;
+    reflections = ['Brand trust is compounding — it builds slowly and collapses fast.','Greenwashing and ethics shortcuts create permanent reputational damage.','Trust is the hidden balance sheet item that most founders undervalue.'];
+  }
+
+  document.getElementById('end-tag').textContent = tag;
+  document.getElementById('end-title').textContent = title;
+  document.getElementById('end-desc').textContent = desc;
+  const rp = document.getElementById('reflection-points');
+  rp.innerHTML = reflections.map(r=>`<li>${r}</li>`).join('');
+}
+
+// ═══════════════════════════════ START / RESTART
+function startGame(){
+  document.getElementById('intro').classList.remove('active');
+  document.getElementById('game').classList.add('active');
+
+  // Build dots in intro for progress (reuse)
+  updateHUD();
+  setPhaseActive('analyze');
+  document.getElementById('analyze-narrative').textContent = narratives[0];
+}
+
+function restartGame(){
+  // Reset state
+  state.quarter = 1; state.profit = 12; state.carbon = 70; state.trust = 55;
+  state.ip = 3; state.upgrades = []; state.legacyEvents = []; state.pendingLegacy = [];
+  state.choiceMade = null; state.investmentMade = null; state.alive = true;
+  state.carbonReduction = 0; state.profitBonus = 0; state.trustBonus = 0;
+
+  document.getElementById('end').classList.remove('active');
+  document.getElementById('game').classList.add('active');
+  document.getElementById('legacy-warning').style.display = 'none';
+  renderUpgrades();
+  renderLegacy();
+  updateHUD();
+  setPhaseActive('analyze');
+  document.getElementById('analyze-narrative').textContent = narratives[0];
+
+  // Reset next-quarter button
+  document.getElementById('next-quarter-btn').onclick = nextQuarter;
+}
+</script>
 </body>
 </html>
